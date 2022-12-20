@@ -274,19 +274,19 @@ def generate_flame_graph():
     top = sorted(todos_dict)
     top.reverse()
     with open("todo.csv", "wt") as file:
-        file.write("todos,file\n")
+        file.write("TODO,file\n")
         file.writelines(f"{k},{f}\n" for k in top[0:20] for f in todos_dict[k])
         
     top = sorted(locs_dict)
     top.reverse()
     with open("loc.csv", "wt") as file:
-        file.write("loc,file\n")
+        file.write("LOC,file\n")
         file.writelines(f"{k},{f}\n" for k in top[0:20] for f in locs_dict[k])
         
     top = sorted(ratio_dict)
     top.reverse()
     with open("ratio.csv", "wt") as file:
-        file.write("ratio,file\n")
+        file.write("TODO/LOC,file\n")
         file.writelines(f"{k},{f}\n" for k in top[0:20] for f in ratio_dict[k])
 
 

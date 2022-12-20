@@ -198,17 +198,22 @@ def generate_flame_graph():
 
     previous_wd = os.getcwd()
     os.chdir(SERENITY_DIR)
+    
+    todos_dict = {}
+    locs_dict = {}
+    ratio_dict = {}
 
     for root, dirs, files in os.walk(".", topdown=False):
+        full_name = os.path.join(root, name)
         for name in files:
             if not any(name.endswith(ext) for ext in [".h", ".c", ".cpp", ".html", ".js", ".sh", "*.txt", "*.cmake"]):
                 continue
-            node = get_node(os.path.join(root, name))
+            node = get_node(full_name)
             if not node:
                 continue
             todos = 0
             locs = 0
-            with open(os.path.join(root, name), "rt") as f:
+            with open(full_name, "rt") as f:
                 for line in f:
                     line = line.strip().upper()
                     todos += line.count("FIXME") + line.count("TODO")
@@ -216,9 +221,19 @@ def generate_flame_graph():
                         locs += 1
             node["todos"] = todos
             node["locs"] = locs
+            ratio = todos/locs
+            if todos not in todos_dict:
+                todos_dict[todos] = []
+            todos_dict[todos].append(full_name)
+            if locs not in locs_dict:
+                locs_dict[todos] = []
+            locs_dict[locs].append(full_name)
+            if ratio not in ratio_dict:
+                ratio_dict[todos] = []
+            ratio_dict[ratio].append(full_name)
 
         for name in dirs:
-            node = get_node(os.path.join(root, name))
+            node = get_node(full_name)
             if not node:
                 continue
             todos = 0
@@ -254,6 +269,27 @@ def generate_flame_graph():
     loc_graph = set_value(lambda node: node.get("locs", 0), flamegraph)
     with open("loc.json", "wt") as file:
         json.dump(loc_graph, file)
+        
+    top = sorted(todos_map)
+    top.reverse()
+    with open("todo.csv", "wt") as file:
+        file.write("todos,file\n")
+        for k in top[0:20]:
+            file.write(f"{k},{todos_map[k]}\n")
+        
+    top = sorted(loc_map)
+    top.reverse()
+    with open("loc.csv", "wt") as file:
+        file.write("loc,file\n")
+        for k in top[0:20]:
+            file.write(f"{k},{loc_map[k]}\n")
+        
+    top = sorted(ratio_map)
+    top.reverse()
+    with open("ratio.csv", "wt") as file:
+        file.write("ratio,file\n")
+        for k in top[0:20]:
+            file.write(f"{k},{ratio_map[k]}\n")
 
 
 def run():

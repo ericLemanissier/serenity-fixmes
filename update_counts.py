@@ -233,7 +233,7 @@ def generate_flame_graph():
     def set_value(calculate, node):
         value = calculate(node)
         if not value:
-            returne None
+            return None
         new_node = {
             "value" : value,
             "children" : [],

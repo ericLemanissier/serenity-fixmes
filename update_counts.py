@@ -9,7 +9,7 @@
 
 import datetime
 import json
-import os.path
+import os
 import subprocess
 import time
 
@@ -114,7 +114,7 @@ def lookup_commit(commit, date, cache):
 def write_graphs(most_recent_commit):
     time_now = int(time.time())
     print(f"Plotting with {time_now=}")
-    time_yesterday = time_now - 3600 * 24
+    time_yesteryesterday = time_now - 3600 * 24 * 2
     time_last_week = time_now - 3600 * 24 * 7
     time_last_month = time_now - 3600 * 24 * 31  # All months are 31 days. Right.
     time_last_year = time_now - 3600 * 24 * 366  # All years are 366 days. Right.
@@ -129,22 +129,32 @@ def write_graphs(most_recent_commit):
     else:
         GNUPLOT_STUPIDITY = 0
 
-    if most_recent_commit > time_yesterday:
+    if most_recent_commit > time_yesteryesterday:
         timed_plot_commands += f"""
-            set output "output_day.png"; plot [{time_yesterday - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines;
+            set output "output_day.png"; plot [{time_yesteryesterday - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines;
         """
+    else:
+        print(f"WARNING: No commits in the last 2 days?! (now={time_now}, two days ago={time_yesteryesterday}, latest_commit={most_recent_commit})")
     if most_recent_commit > time_last_week:
         timed_plot_commands += f"""
             set output "output_week.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines;
         """
+    else:
+        print(f"WARNING: No commits in the last week?! (now={time_now}, a week ago={time_last_week}, latest_commit={most_recent_commit})")
     if most_recent_commit > time_last_month:
         timed_plot_commands += f"""
             set output "output_month.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines;
         """
+    else:
+        print(f"ERROR: No commits in the last month?! (now={time_now}, a month ago={time_last_month}, latest_commit={most_recent_commit})")
+        raise AssertionError()
     if most_recent_commit > time_last_year:
         timed_plot_commands += f"""
             set output "output_year.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines;
         """
+    else:
+        print(f"ERROR: No commits in the last YEAR?! (now={time_now}, a year ago={time_last_year}, latest_commit={most_recent_commit})")
+        raise AssertionError()
     subprocess.run(
         [
             "gnuplot",
@@ -164,6 +174,74 @@ def write_graphs(most_recent_commit):
         ],
         check=True,
     )
+
+
+def generate_flame_graph():
+    flamegraph = {"name": ".", "children":[]}
+
+    def get_node(path):
+        node = flamegraph
+        for f in os.path.normpath(path).split(os.path.sep):
+            if f in [".git", ".devcontainer"]:
+                return None
+            if "children" not in node:
+                node["children"] = []
+            for child in node["children"]:
+                if child["name"] == f:
+                    node = child
+                    break
+            else:
+                new_node = {"name" : f}
+                node["children"].append(new_node)
+                node = new_node
+        return node
+
+    previous_wd = os.getcwd()
+    os.chdir(SERENITY_DIR)
+
+    for root, dirs, files in os.walk(".", topdown=False):
+        for name in files:
+            if not any(name.endswith(ext) for ext in [".h", ".c", ".cpp", ".html", ".js", ".sh", "*.txt", "*.cmake"]):
+                continue
+            node = get_node(os.path.join(root, name))
+            if not node:
+                continue
+            todos = 0
+            locs = 0
+            with open(os.path.join(root, name), "rt") as f:
+                for line in f:
+                    line = line.strip().upper()
+                    todos += line.count("FIXME") + line.count("TODO")
+                    if line and not line.startswith("//"):
+                        locs += 1
+            node["todos"] = todos
+            node["locs"] = locs
+
+        for name in dirs:
+            node = get_node(os.path.join(root, name))
+            if not node:
+                continue
+            todos = 0
+            locs = 0
+            for c in node.get("children", []):
+                todos += c["todos"]
+                locs += c["locs"]
+            node["todos"] = todos
+            node["locs"] = locs
+    os.chdir(previous_wd)
+
+    def set_value(calculate, node=flamegraph):
+        node["value"] = calculate(node)
+        for c in node.get("children", []):
+            set_value(calculate, c)
+
+    set_value(lambda node: node.get("todos", 0))
+    with open("todo.json", "wt") as file:
+        json.dump(flamegraph, file)
+
+    set_value(lambda node: node.get("locs", 0))
+    with open("loc.json", "wt") as file:
+        json.dump(flamegraph, file)
 
 
 def run():
@@ -190,6 +268,8 @@ def run():
         for entry in tagged_commits:
             fp.write(f"{entry['unix_timestamp']},{entry['fixmes']}\n")
     write_graphs(commits_and_dates[-1][1])
+
+    generate_flame_graph()
 
 
 if __name__ == "__main__":

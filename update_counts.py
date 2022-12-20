@@ -226,10 +226,10 @@ def generate_flame_graph():
                 todos_dict[todos] = []
             todos_dict[todos].append(full_name)
             if locs not in locs_dict:
-                locs_dict[todos] = []
+                locs_dict[locs] = []
             locs_dict[locs].append(full_name)
             if ratio not in ratio_dict:
-                ratio_dict[todos] = []
+                ratio_dict[ratio] = []
             ratio_dict[ratio].append(full_name)
 
         for name in dirs:
@@ -270,26 +270,26 @@ def generate_flame_graph():
     with open("loc.json", "wt") as file:
         json.dump(loc_graph, file)
         
-    top = sorted(todos_map)
+    top = sorted(todos_dict)
     top.reverse()
     with open("todo.csv", "wt") as file:
         file.write("todos,file\n")
         for k in top[0:20]:
-            file.write(f"{k},{todos_map[k]}\n")
+            file.write(f"{k},{todos_dict[k]}\n")
         
-    top = sorted(loc_map)
+    top = sorted(locs_dict)
     top.reverse()
     with open("loc.csv", "wt") as file:
         file.write("loc,file\n")
         for k in top[0:20]:
-            file.write(f"{k},{loc_map[k]}\n")
+            file.write(f"{k},{locs_dict[k]}\n")
         
-    top = sorted(ratio_map)
+    top = sorted(ratio_dict)
     top.reverse()
     with open("ratio.csv", "wt") as file:
         file.write("ratio,file\n")
         for k in top[0:20]:
-            file.write(f"{k},{ratio_map[k]}\n")
+            file.write(f"{k},{ratio_dict[k]}\n")
 
 
 def run():

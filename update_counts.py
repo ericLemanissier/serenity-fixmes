@@ -240,7 +240,7 @@ def generate_flame_graph():
         return {
             "value" : value,
             "children" : children,
-        } if value and children else None
+        } if value or children else None
     
     todo_graph = set_value(lambda node: node.get("todos", 0), flamegraph)
     with open("todo.json", "wt") as file:

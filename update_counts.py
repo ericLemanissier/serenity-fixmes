@@ -230,18 +230,27 @@ def generate_flame_graph():
             node["locs"] = locs
     os.chdir(previous_wd)
 
-    def set_value(calculate, node=flamegraph):
-        node["value"] = calculate(node)
+    def set_value(calculate, node):
+        value = calculate(node)
+        if not value:
+            returne None
+        new_node = {
+            "value" : value,
+            "children" : [],
+        }                  
         for c in node.get("children", []):
-            set_value(calculate, c)
-
-    set_value(lambda node: node.get("todos", 0))
+            new_child = set_value(calculate, c)
+            if new_child:
+                new_node["children"].append(new_child)
+        return new_node
+    
+    todo_graph = set_value(lambda node: node.get("todos", 0), flamegraph)
     with open("todo.json", "wt") as file:
-        json.dump(flamegraph, file)
+        json.dump(todo_graph, file)
 
-    set_value(lambda node: node.get("locs", 0))
+    loc_graph = set_value(lambda node: node.get("locs", 0), flamegraph)
     with open("loc.json", "wt") as file:
-        json.dump(flamegraph, file)
+        json.dump(loc_graph, file)
 
 
 def run():

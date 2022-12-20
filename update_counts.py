@@ -221,16 +221,17 @@ def generate_flame_graph():
                         locs += 1
             node["todos"] = todos
             node["locs"] = locs
-            ratio = todos/locs
             if todos not in todos_dict:
                 todos_dict[todos] = []
             todos_dict[todos].append(full_name)
             if locs not in locs_dict:
                 locs_dict[locs] = []
             locs_dict[locs].append(full_name)
-            if ratio not in ratio_dict:
-                ratio_dict[ratio] = []
-            ratio_dict[ratio].append(full_name)
+            if locs:
+                ratio = todos/locs
+                if ratio not in ratio_dict:
+                    ratio_dict[ratio] = []
+                ratio_dict[ratio].append(full_name)
 
         for name in dirs:
             node = get_node(os.path.join(root, name))

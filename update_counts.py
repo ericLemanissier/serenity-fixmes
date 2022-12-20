@@ -238,7 +238,10 @@ def generate_flame_graph():
                 children.append(new_child)
         value = calculate(node)
         if value or children:
-            new_node = {"value": value}
+            new_node = {
+                "name": node["name"]
+                "value": value
+            }
             if children:
                 new_node["children"] = children
             return new_node

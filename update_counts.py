@@ -204,8 +204,8 @@ def generate_flame_graph():
     ratio_dict = {}
 
     for root, dirs, files in os.walk(".", topdown=False):
-        full_name = os.path.join(root, name)
         for name in files:
+            full_name = os.path.join(root, name)
             if not any(name.endswith(ext) for ext in [".h", ".c", ".cpp", ".html", ".js", ".sh", "*.txt", "*.cmake"]):
                 continue
             node = get_node(full_name)
@@ -233,7 +233,7 @@ def generate_flame_graph():
             ratio_dict[ratio].append(full_name)
 
         for name in dirs:
-            node = get_node(full_name)
+            node = get_node(os.path.join(root, name))
             if not node:
                 continue
             todos = 0

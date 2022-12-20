@@ -237,16 +237,15 @@ def generate_flame_graph():
             if new_child:
                 children.append(new_child)
         value = calculate(node)
-        if value or children:
-            new_node = {
-                "name": node["name"]
-                "value": value
-            }
-            if children:
-                new_node["children"] = children
-            return new_node
-        else:
+        if not value and not children:
             return None
+        new_node = {
+            "name": node["name"],
+            "value": value,
+        }
+        if children:
+            new_node["children"] = children
+        return new_node
     
     todo_graph = set_value(lambda node: node.get("todos", 0), flamegraph)
     with open("todo.json", "wt") as file:

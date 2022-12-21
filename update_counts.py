@@ -224,7 +224,7 @@ def generate_flame_graph():
                 todos,
                 locs,
                 todos/locs if locs else "",
-                "full_name"
+                full_name
             ])
 
         for name in dirs:

@@ -10,6 +10,7 @@
   <title>Serenity FIXMEs and TODOs, today</title>
   <link rel="canonical" href="https://benwiederhake.github.io/serenity-fixmes/flamegraph.html">
   <link rel="stylesheet" type="text/css" href="d3-flamegraph_4.1.3.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.min.css"/>
   <style>
   .muted {
     color: #6c757d;
@@ -39,6 +40,8 @@
 
   <script type="text/javascript" src="d3.v7.7.0.min.js"></script>
   <script type="text/javascript" src="d3-flamegraph.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" crossorigin="anonymous"></script>
+  <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
   <script type="text/javascript">
   var todo_chart = flamegraph()
     .width(960).title("number of fixmes");
@@ -69,7 +72,9 @@
     d3.csv("todo.csv").then((rows) => {
       var table = d3.select("#todo_table").append('table')
                     .style("border-collapse", "collapse")
-                    .style("border", "2px black solid");
+                    .style("border", "2px black solid")
+                    .style("width", "100%")
+                    .classed("tripe hover order-column row-border compact nowrap", true);
 
       table.append("thead").append("tr")
         .selectAll("th")
@@ -94,6 +99,38 @@
         .on("mouseout", () => d3.select(this).style("background-color", "white"))
         .text(d => d)
         .style("font-size", "12px");
+        
+      table.append("tfoot").append("tr")
+        .selectAll("th")
+        .data(rows.columns)
+        .enter().append("th")
+        .text(d => '<input type="text" placeholder="Filter ' + d + '" style="width:100%"/>')
+        .style("border", "1px black solid")
+        .style("padding", "5px")
+        .style("background-color", "lightgray")
+        .style("font-weight", "bold")
+        .style("text-transform", "uppercase");
+        
+      $('#todo_table').DataTable({
+          scrollX: true,
+          scrollY: '80vh',
+          scrollCollapse: true,
+          paging: false,
+          order: [[0, 'desc']],
+          initComplete: function () {
+              // Apply the search
+              this.api()
+                  .columns()
+                  .every(function () {
+                      var that = this;
+                      $('input', this.footer()).on('keyup change clear', function () {
+                          if (that.search() !== this.value) {
+                              that.search(this.value).draw();
+                          }
+                      });
+                  });
+          },
+      });
     });
 
     d3.csv("loc.csv").then((rows) => {

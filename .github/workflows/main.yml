@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:   
+      SOURCES: *.png *.json *.csv *.html *.txt *.js *.css
 
     steps:
       - uses: actions/checkout@v3
@@ -36,6 +38,13 @@ jobs:
       - name: Generate web page
         run: |
           cp pages/*.json .
+          python ./update_counts.py
+          cp -t pages/ ${SOURCES}
+      - name: Publish web page
+        working-directory: pages
+        run: |
           git config --global user.name github-actions
           git config --global user.email github-actions@github.com
-          ./build_and_publish.sh
+          git add ${SOURCES}
+          git commit -m "Automatic update" --amend
+          git push -f

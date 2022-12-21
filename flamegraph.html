@@ -23,7 +23,7 @@
   <h1>Serenity FIXMEs and TODOs, today</h1>
   <div id="todo_chart">(loading…)</div>
   <br/>
-  <div id="todo_table"></div>
+  <table id="todo_table" class="stripe hover order-column row-border compact nowrap" style="width:100%"></table>
   <br/>
   <div id="loc_chart">(loading…)</div>
   <br/>
@@ -70,11 +70,7 @@
     });
 
     d3.csv("todo.csv").then((rows) => {
-      var table = d3.select("#todo_table").append('table')
-                    .style("border-collapse", "collapse")
-                    .style("border", "2px black solid")
-                    .style("width", "100%")
-                    .classed("tripe hover order-column row-border compact nowrap", true);
+      var table = d3.select("#todo_table")
 
       table.append("thead").append("tr")
         .selectAll("th")
@@ -104,12 +100,10 @@
         .selectAll("th")
         .data(rows.columns)
         .enter().append("th")
-        .text(d => '<input type="text" placeholder="Filter ' + d + '" style="width:100%"/>')
-        .style("border", "1px black solid")
-        .style("padding", "5px")
-        .style("background-color", "lightgray")
-        .style("font-weight", "bold")
-        .style("text-transform", "uppercase");
+        .append("input")
+        .attr("type", "text")
+        .attr("placeholder", d => "Filter " + d)
+        .style("width", "100%")
         
       $('#todo_table').DataTable({
           scrollX: true,

@@ -89,7 +89,7 @@ def count_deprecated_strings_here():
     # We don't use "-n" here, since we don't use that information, and less output should make it marginally faster.
     # That is also why we use "-h".
     result = subprocess.run(
-        ["git", "-C", SERENITY_DIR, "grep", "-IEh", "Deprecated(Fly)?String"],
+        ["git", "-C", SERENITY_DIR, "grep", "-IEh", "DeprecatedFlyString"],
         check=False,
         capture_output=True,
         text=True,
@@ -166,14 +166,14 @@ def write_graphs(most_recent_commit):
     if most_recent_commit > time_last_week:
         timed_plot_commands += f"""
             set output "output_week.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_week_depstr.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+            set output "output_week_depstr.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedFlyStrings";
         """
     else:
         print(f"WARNING: No commits in the last week?! (now={time_now}, a week ago={time_last_week}, latest_commit={most_recent_commit})")
     if most_recent_commit > time_last_month:
         timed_plot_commands += f"""
             set output "output_month.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_month_depstr.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+            set output "output_month_depstr.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedFlyStrings";
         """
     else:
         print(f"ERROR: No commits in the last month?! (now={time_now}, a month ago={time_last_month}, latest_commit={most_recent_commit})")
@@ -181,7 +181,7 @@ def write_graphs(most_recent_commit):
     if most_recent_commit > time_last_year:
         timed_plot_commands += f"""
             set output "output_year.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_year_depstr.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+            set output "output_year_depstr.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedFlyStrings";
             set output "output_year_depfil.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:4 with lines title "DeprecatedFile";
         """
     else:
@@ -202,7 +202,7 @@ def write_graphs(most_recent_commit):
                 set output "output_total.png";
                 plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
                 set output "output_total_depstr.png";
-                plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+                plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedFlyStrings";
                 set output "output_total_depfil.png";
                 plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:4 with lines title "DeprecatedFile";
                 {timed_plot_commands}

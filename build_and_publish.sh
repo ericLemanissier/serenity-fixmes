@@ -4,18 +4,17 @@ set -ex
 
 SOURCES="\
     output_total.png
-    output_day.png
     output_week.png
     output_month.png
     output_year.png
     output_total_depstr.png
-    output_day_depstr.png
     output_week_depstr.png
     output_month_depstr.png
     output_year_depstr.png
-    tagged_history.json
+    output_total_depfil.png
+    output_year_depfil.png
     tagged_history.csv
-    cache_v2.json
+    cache_v4.json
     index.html
     flamegraph.html
     loc.json

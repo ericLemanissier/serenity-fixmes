@@ -14,12 +14,11 @@ import subprocess
 import time
 
 SERENITY_DIR = "serenity/"
-FILENAME_JSON = "tagged_history.json"
 FILENAME_CSV = "tagged_history.csv"
-FILENAME_CACHE = "cache_v2.json"
-FILENAME_CACHE_COLD = "cache_cold_v2.json"
+FILENAME_CACHE = "cache_v4.json"
+FILENAME_CACHE_COLD = "cache_cold_v4.json"
 # Save the cache only every X commits, instead of after every commit.
-SAVE_CACHE_INV_FREQ = 50
+SAVE_CACHE_INV_FREQ = 200
 
 
 def fetch_new():
@@ -71,29 +70,46 @@ def save_cache(cache):
         json.dump(cache, fp, sort_keys=True, separators=",:", indent=0)
 
 
-def count_fixmes(commit):
-    subprocess.run(["git", "-C", SERENITY_DIR, "checkout", "-q", commit], check=True)
+def count_fixmes_here():
     # We don't use "-n" here, since we don't use that information, and less output should make it marginally faster.
+    # That is also why we use "-h".
     result = subprocess.run(
-        ["git", "-C", SERENITY_DIR, "grep", "-iE", "FIXME|TODO"],
-        check=True,
+        ["git", "-C", SERENITY_DIR, "grep", "-IiEh", "FIXME|TODO"],
+        check=False,
         capture_output=True,
         text=True,
     )
+    assert result.returncode in [0, 1]
     lines = result.stdout.split("\n")
     assert lines[-1] == "", result.stdout[-10:]
     return len(lines)
 
 
-def count_deprecated_strings(commit):
-    subprocess.run(["git", "-C", SERENITY_DIR, "checkout", "-q", commit], check=True)
+def count_deprecated_strings_here():
     # We don't use "-n" here, since we don't use that information, and less output should make it marginally faster.
+    # That is also why we use "-h".
     result = subprocess.run(
-        ["git", "-C", SERENITY_DIR, "grep", "-F", "DeprecatedString"],
-        check=True,
+        ["git", "-C", SERENITY_DIR, "grep", "-IEh", "Deprecated(Fly)?String"],
+        check=False,
         capture_output=True,
         text=True,
     )
+    assert result.returncode in [0, 1]
+    lines = result.stdout.split("\n")
+    assert lines[-1] == "", result.stdout[-10:]
+    return len(lines)
+
+
+def count_deprecated_files_here():
+    # We don't use "-n" here, since we don't use that information, and less output should make it marginally faster.
+    # That is also why we use "-h".
+    result = subprocess.run(
+        ["git", "-C", SERENITY_DIR, "grep", "-IFh", "DeprecatedFile"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode in [0, 1]
     lines = result.stdout.split("\n")
     assert lines[-1] == "", result.stdout[-10:]
     return len(lines)
@@ -101,13 +117,15 @@ def count_deprecated_strings(commit):
 
 def lookup_commit(commit, date, cache):
     if commit in cache:
-        fixmes, deprecated_strings = cache[commit]
+        fixmes, deprecated_strings, deprecated_files = cache[commit]
     else:
         time_start = time.time()
-        fixmes = count_fixmes(commit)
-        deprecated_strings = count_deprecated_strings(commit)
+        subprocess.run(["git", "-C", SERENITY_DIR, "checkout", "-q", commit], check=True)
+        fixmes = count_fixmes_here()
+        deprecated_strings = count_deprecated_strings_here()
+        deprecated_files = count_deprecated_files_here()
         time_done_counting = time.time()
-        cache[commit] = fixmes, deprecated_strings
+        cache[commit] = fixmes, deprecated_strings, deprecated_files
         if len(cache) % SAVE_CACHE_INV_FREQ == 0:
             print("    (actually saving cache)")
             save_cache(cache)
@@ -124,13 +142,13 @@ def lookup_commit(commit, date, cache):
         human_readable_time=human_readable_time,
         fixmes=fixmes,
         deprecated_strings=deprecated_strings,
+        deprecated_files=deprecated_files,
     )
 
 
 def write_graphs(most_recent_commit):
     time_now = int(time.time())
     print(f"Plotting with {time_now=}")
-    time_yesteryesterday = time_now - 3600 * 24 * 2
     time_last_week = time_now - 3600 * 24 * 7
     time_last_month = time_now - 3600 * 24 * 31  # All months are 31 days. Right.
     time_last_year = time_now - 3600 * 24 * 366  # All years are 366 days. Right.
@@ -145,24 +163,17 @@ def write_graphs(most_recent_commit):
     else:
         GNUPLOT_STUPIDITY = 0
 
-    if most_recent_commit > time_yesteryesterday:
-        timed_plot_commands += f"""
-            set output "output_day.png"; plot [{time_yesteryesterday - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_day_depstr.png"; plot [{time_yesteryesterday - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings";
-        """
-    else:
-        print(f"WARNING: No commits in the last 2 days?! (now={time_now}, two days ago={time_yesteryesterday}, latest_commit={most_recent_commit})")
     if most_recent_commit > time_last_week:
         timed_plot_commands += f"""
             set output "output_week.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_week_depstr.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings";
+            set output "output_week_depstr.png"; plot [{time_last_week - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
         """
     else:
         print(f"WARNING: No commits in the last week?! (now={time_now}, a week ago={time_last_week}, latest_commit={most_recent_commit})")
     if most_recent_commit > time_last_month:
         timed_plot_commands += f"""
             set output "output_month.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_month_depstr.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings";
+            set output "output_month_depstr.png"; plot [{time_last_month - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
         """
     else:
         print(f"ERROR: No commits in the last month?! (now={time_now}, a month ago={time_last_month}, latest_commit={most_recent_commit})")
@@ -170,7 +181,8 @@ def write_graphs(most_recent_commit):
     if most_recent_commit > time_last_year:
         timed_plot_commands += f"""
             set output "output_year.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
-            set output "output_year_depstr.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings";
+            set output "output_year_depstr.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+            set output "output_year_depfil.png"; plot [{time_last_year - GNUPLOT_STUPIDITY}:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:4 with lines title "DeprecatedFile";
         """
     else:
         print(f"ERROR: No commits in the last YEAR?! (now={time_now}, a year ago={time_last_year}, latest_commit={most_recent_commit})")
@@ -190,7 +202,9 @@ def write_graphs(most_recent_commit):
                 set output "output_total.png";
                 plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:2 with lines title "FIXMEs and TODOs";
                 set output "output_total_depstr.png";
-                plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings";
+                plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:3 with lines title "DeprecatedStrings+DeprecatedFlyStrings";
+                set output "output_total_depfil.png";
+                plot [:{time_now - GNUPLOT_STUPIDITY}] "tagged_history.csv" using 1:4 with lines title "DeprecatedFile";
                 {timed_plot_commands}
             """,
         ],
@@ -286,11 +300,11 @@ def generate_flame_graph():
     
     todo_graph = set_value(lambda node: node.get("todos", 0), flamegraph)
     with open("todo.json", "wt") as file:
-        json.dump(todo_graph, file)
+        json.dump(todo_graph, file, separators=",:")
 
     loc_graph = set_value(lambda node: node.get("locs", 0), flamegraph)
     with open("loc.json", "wt") as file:
-        json.dump(loc_graph, file)
+        json.dump(loc_graph, file, separators=",:")
 
     with open("ratio.csv", "wt") as file:
         file.write("TODO,LOC,TODO/LOC,FILE\n")
@@ -315,11 +329,9 @@ def run():
         lookup_commit(commit, date, cache) for commit, date in commits_and_dates
     ]
     save_cache(cache)
-    with open(FILENAME_JSON, "w") as fp:
-        json.dump(tagged_commits, fp, sort_keys=True, indent=1)
     with open(FILENAME_CSV, "w") as fp:
         for entry in tagged_commits:
-            fp.write(f"{entry['unix_timestamp']},{entry['fixmes']},{entry['deprecated_strings']}\n")
+            fp.write(f"{entry['unix_timestamp']},{entry['fixmes']},{entry['deprecated_strings']},{entry['deprecated_files']}\n")
     write_graphs(commits_and_dates[-1][1])
 
     generate_flame_graph()

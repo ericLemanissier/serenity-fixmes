@@ -315,7 +315,7 @@ def generate_flame_graph() -> None:   # noqa: MC0001
 
     with open("ratio.csv", "wt", encoding="utf-8") as file:
         file.write("TODO,LOC,TODO/LOC,FILE\n")
-        file.writelines(f"{e[0]},{e[1]},{e[2]:.2%},{e[3]}\n" for e in ratios_list)
+        file.writelines(f"{e[0]},{e[1]},{e[2]:.2%},<a href=\"https://github.com/SerenityOS/serenity/blob/master/{e[3]}\">{e[3]}</a>\n" for e in ratios_list)
 
 
 def run() -> None:

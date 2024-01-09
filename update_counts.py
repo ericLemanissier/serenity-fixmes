@@ -242,7 +242,8 @@ def generate_flame_graph():
             full_name = os.path.join(root, name)
             if not any(name.endswith(ext) for ext in [".h", ".c", ".cpp", ".html", ".js", ".sh", "*.txt", "*.cmake"]):
                 continue
-            if full_name in ["./Tests/LibWeb/Layout/input/html-encoding-detection-crash.html"]:
+            if full_name in ["./Tests/LibWeb/Layout/input/html-encoding-detection-crash.html",
+                             "./Tests/LibWeb/Layout/input/utf-16-be-xhtml-file-should-decode-correctly.html"]:
                 continue
             node = get_node(full_name)
             if not node:
@@ -250,11 +251,15 @@ def generate_flame_graph():
             todos = 0
             locs = 0
             with open(full_name, "rt") as f:
-                for line in f:
-                    line = line.strip().upper()
-                    todos += line.count("FIXME") + line.count("TODO")
-                    if line and not line.startswith("//"):
-                        locs += 1
+                try:
+                    for line in f:
+                        line = line.strip().upper()
+                        todos += line.count("FIXME") + line.count("TODO")
+                        if line and not line.startswith("//"):
+                            locs += 1
+                except UnicodeDecodeError as err:
+                    print(f"Error decodingfile {full_name}: {err}")
+                    continue
             node["todos"] = todos
             node["locs"] = locs
 

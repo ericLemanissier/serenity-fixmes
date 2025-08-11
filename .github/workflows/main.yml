@@ -19,12 +19,12 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           ref: "hp-pages"
           path: "pages"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: "SerenityOS/serenity"
           path: "serenity"
